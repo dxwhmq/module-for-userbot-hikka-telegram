@@ -5,25 +5,19 @@ from .. import loader, utils
 
 @loader.tds
 class dxwhmqHelpMod(loader.Module):
-    """Стильный хелп в формате цитаты"""
+    """dhelp"""
     strings = {"name": "dxwhmqHelp"}
 
     @loader.command()
     async def dhelp(self, message):
-        """Выводит модули и их команды в формате blockquote"""
-        # Обращаемся напрямую к списку загруженных модулей
-        all_modules = self._loader.modules
-        
+        """blockquote help"""
+        all_modules = self._client.loader.modules
         header = "<b>✧ dxwhmq_systems ✧</b>\n\n"
         
         items = []
         for mod in all_modules:
             mod_name = getattr(mod, "strings", {}).get("name", mod.__class__.__name__)
-            
-            # Получаем команды через словарь commands модуля
-            commands = []
-            if hasattr(mod, "commands"):
-                commands = list(mod.commands.keys())
+            commands = list(getattr(mod, "commands", {}).keys())
             
             if commands:
                 cmd_list = ", ".join(commands)
@@ -32,7 +26,5 @@ class dxwhmqHelpMod(loader.Module):
                 items.append(f"▫️ <b>{mod_name}</b>")
 
         content = "\n".join(sorted(items))
-        final_text = f"<blockquote>{header}{content}</blockquote>"
+        await utils.answer(message, f"<blockquote>{header}{content}</blockquote>")
         
-        await utils.answer(message, final_text)
-     
