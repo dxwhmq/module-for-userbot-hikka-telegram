@@ -10,17 +10,26 @@ class dxwhmqHelpMod(loader.Module):
 
     @loader.command()
     async def dxhelp(self, message):
-        """Выводит список всех модулей в формате blockquote"""
-        all_modules = self.lookup("Loader").modules # Достаем список через загрузчик
-        out = "✧ dxwhmq_systems ✧\n\n"
+        """Выводит модули и их команды в формате blockquote"""
+        all_modules = self.lookup("Loader").modules
+        header = "<b>✧ dxwhmq_systems ✧</b>\n\n"
         
-        mods = []
+        items = []
         for mod in all_modules:
-            name = getattr(mod, "strings", {}).get("name", mod.__class__.__name__)
-            mods.append(f"▫️ {name}")
+            # Получаем имя модуля
+            mod_name = getattr(mod, "strings", {}).get("name", mod.__class__.__name__)
+            
+            # Извлекаем список команд модуля
+            commands = [cmd for cmd in dir(mod) if not cmd.startswith('_') and callable(getattr(mod, cmd)) and hasattr(getattr(mod, cmd), 'command')]
+            
+            if commands:
+                cmd_list = ", ".join(commands)
+                items.append(f"▫️ <b>{mod_name}</b>: ( <code>{cmd_list}</code> )")
+            else:
+                items.append(f"▫️ <b>{mod_name}</b>")
+
+        content = "\n".join(sorted(items))
+        final_text = f"<blockquote>{header}{content}</blockquote>"
         
-        out += "\n".join(sorted(mods))
-        
-        # Оборачиваем в blockquote (цитату)
-        await utils.answer(message, f"<blockquote>{out}</blockquote>")
-        
+        await utils.answer(message, final_text)
+     
