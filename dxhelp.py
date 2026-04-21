@@ -1,4 +1,4 @@
- # meta developer: @dxwhmq
+# meta developer: @dxwhmq
 # scope: hikka_only
 
 from .. import loader, utils
@@ -9,18 +9,21 @@ class dxwhmqHelpMod(loader.Module):
     strings = {"name": "dxwhmqHelp"}
 
     @loader.command()
-    async def dxhelp(self, message):
+    async def dhelp(self, message):
         """Выводит модули и их команды в формате blockquote"""
-        all_modules = self.lookup("Loader").modules
+        # Обращаемся напрямую к списку загруженных модулей
+        all_modules = self._loader.modules
+        
         header = "<b>✧ dxwhmq_systems ✧</b>\n\n"
         
         items = []
         for mod in all_modules:
-            # Получаем имя модуля
             mod_name = getattr(mod, "strings", {}).get("name", mod.__class__.__name__)
             
-            # Извлекаем список команд модуля
-            commands = [cmd for cmd in dir(mod) if not cmd.startswith('_') and callable(getattr(mod, cmd)) and hasattr(getattr(mod, cmd), 'command')]
+            # Получаем команды через словарь commands модуля
+            commands = []
+            if hasattr(mod, "commands"):
+                commands = list(mod.commands.keys())
             
             if commands:
                 cmd_list = ", ".join(commands)
