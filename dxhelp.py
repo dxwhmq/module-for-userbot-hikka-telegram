@@ -1,4 +1,4 @@
-# meta developer: @dxwhmq
+## meta developer: @dxwhmq
 # scope: hikka_only
 
 from .. import loader, utils
@@ -26,5 +26,6 @@ class dxwhmqHelpMod(loader.Module):
                 items.append(f"▫️ <b>{mod_name}</b>")
 
         content = "\n".join(sorted(items))
-        await utils.answer(message, f"<blockquote>{header}{content}</blockquote>")
+        # Используем edit, чтобы не триггерить стандартный хелп
+        await message.edit(f"<blockquote>{header}{content}</blockquote>")
         
