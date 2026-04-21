@@ -3,7 +3,7 @@
 
 from .. import loader, utils
 
-loader.tds
+@loader.tds
 class dxwhmqHelpMod(loader.Module):
     """Стильный хелп в формате цитаты (blockquote)"""
     strings = {"name": "dxwhmqHelp"}
