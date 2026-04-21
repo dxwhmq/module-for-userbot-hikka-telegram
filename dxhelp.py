@@ -8,7 +8,7 @@ class dxwhmqHelpMod(loader.Module):
     """Стильный хелп в формате цитаты (blockquote)"""
     strings = {"name": "dxwhmqHelp"}
 
-    async def helpcmd(self, message):
+    async def dxhelp(self, message):
         """Выводит список всех модулей в формате blockquote"""
         all_modules = self.all_modules
         out = "✧ dxwhmq_systems ✧\n\n"
