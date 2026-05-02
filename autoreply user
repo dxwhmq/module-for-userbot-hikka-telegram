@@ -1,0 +1,132 @@
+__version__ = (1, 0, 0)
+# meta developer: @dxwhmq
+# Name: AutoReply
+# meta fhsdesc: autoreply, auto, reply, ответ, автоответ
+
+import logging
+
+from herokutl.types import Message
+from telethon import events
+
+from .. import loader, utils
+
+logger = logging.getLogger(__name__)
+
+
+@loader.tds
+class AutoReplyMod(loader.Module):
+    """Automatically replies to a specific user in any chat."""
+
+    strings = {
+        "name": "AutoReply",
+        "enabled": "<b>✅ Автоответ включён</b>\n👤 User ID: <code>{}</code>\n💬 Сообщение: <code>{}</code>",
+        "stopped": "<b>❌ Автоответ выключен.</b>",
+        "not_active": "<b>ℹ️ Автоответ не активен.</b>",
+        "status_on": "<b>📊 Автоответ активен</b>\n👤 User ID: <code>{}</code>\n💬 Сообщение: <code>{}</code>",
+        "usage": "<b>❓ Использование:</b>\n<code>.autoreply &lt;user_id&gt; &lt;сообщение&gt;</code>\n<code>.autoreply stop</code>",
+        "invalid_id": "<b>⚠️ Неверный user_id. Укажите число.</b>",
+    }
+
+    def __init__(self):
+        self._target_id = None
+        self._reply_text = None
+        self._handler = None
+
+    async def client_ready(self, client, db):
+        self.client = client
+        self.db = db
+
+        # Восстанавливаем сохранённые настройки
+        self._target_id = self.db.get(__name__, "target_id", None)
+        self._reply_text = self.db.get(__name__, "reply_text", None)
+
+        if self._target_id and self._reply_text:
+            await self._register_handler()
+
+    async def _register_handler(self):
+        """Регистрирует обработчик входящих сообщений."""
+        await self._remove_handler()
+
+        target_id = self._target_id
+
+        async def handler(event):
+            try:
+                sender_id = event.sender_id
+                if sender_id == target_id:
+                    await event.reply(self._reply_text)
+            except Exception as e:
+                logger.exception(e)
+
+        self._handler = handler
+        self.client.add_event_handler(
+            handler,
+            events.NewMessage(incoming=True)
+        )
+
+    async def _remove_handler(self):
+        """Удаляет обработчик если он был зарегистрирован."""
+        if self._handler:
+            self.client.remove_event_handler(self._handler)
+            self._handler = None
+
+    @loader.command(
+        ru_doc="<user_id> <сообщение> — включить автоответ для пользователя. Или 'stop' для выключения.",
+        en_doc="<user_id> <message> — enable autoreply for a user. Or 'stop' to disable.",
+    )
+    async def autoreply(self, message: Message):
+        """<user_id> <сообщение> | stop — автоответ на сообщения пользователя."""
+        args = utils.get_args_raw(message)
+
+        if not args:
+            await utils.answer(message, self.strings("usage"))
+            return
+
+        if args.strip().lower() == "stop":
+            await self._remove_handler()
+            self._target_id = None
+            self._reply_text = None
+            self.db.set(__name__, "target_id", None)
+            self.db.set(__name__, "reply_text", None)
+            await utils.answer(message, self.strings("stopped"))
+            return
+
+        parts = args.split(maxsplit=1)
+        if len(parts) < 2:
+            await utils.answer(message, self.strings("usage"))
+            return
+
+        try:
+            target_id = int(parts[0])
+        except ValueError:
+            await utils.answer(message, self.strings("invalid_id"))
+            return
+
+        reply_text = parts[1]
+
+        self._target_id = target_id
+        self._reply_text = reply_text
+        self.db.set(__name__, "target_id", target_id)
+        self.db.set(__name__, "reply_text", reply_text)
+
+        await self._register_handler()
+        await utils.answer(
+            message,
+            self.strings("enabled").format(target_id, utils.escape_html(reply_text)),
+        )
+
+    @loader.command(
+        ru_doc="Показать статус автоответа.",
+        en_doc="Show autoreply status.",
+    )
+    async def autoreplyinfo(self, message: Message):
+        """Показать статус автоответа."""
+        if self._target_id and self._reply_text:
+            await utils.answer(
+                message,
+                self.strings("status_on").format(
+                    self._target_id,
+                    utils.escape_html(self._reply_text),
+                ),
+            )
+        else:
+            await utils.answer(message, self.strings("not_active"))
